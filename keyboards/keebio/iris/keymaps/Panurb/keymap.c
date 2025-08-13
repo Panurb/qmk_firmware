@@ -9,7 +9,7 @@
  */
  
  
- #define RA(key) RALT(key)
+#define RA(key) RALT(key)
  
  
  enum layers {
@@ -18,12 +18,18 @@
 	_RAISE, 
 	_ADJUST
  };
+ 
+enum custom_keycodes {
+	GAME = SAFE_RANGE
+};
 
 
 static const HSV color_base = {128, 255, 128};
 static const HSV color_lower = {212, 255, 128};
 static const HSV color_raise = {44, 255, 128};
 static const HSV color_arrows = {0, 255, 128};
+
+static bool gaming_mode = false;
 
 #define FADE_SPEED 10  // smaller = slower
 
@@ -43,7 +49,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 		_______, 	_______, 	RA(KC_2),	RA(KC_3),	RA(KC_4),  	RA(KC_5), 							RA(KC_6), 	RA(KC_7),	RA(KC_8),	RA(KC_9),	RA(KC_0), 	RA(KC_MINS), 
 		_______, 	_______,	_______,	_______, 	_______, 	_______, 							_______, 	KC_HOME, 	KC_UP, 		KC_END,	 	_______, 	FI_CIRC, 	
 		_______, 	_______, 	_______,	_______,	_______, 	_______, 							_______, 	KC_LEFT, 	KC_DOWN, 	KC_RGHT,	_______, 	KC_BSLS, 	
-		_______, 	KC_NUBS, 	_______, 	_______, 	_______, 	_______, 	_______, 	_______, 	_______, 	_______,	_______,	_______, 	KC_VOLD,	_______,	
+		_______, 	KC_NUBS, 	_______, 	_______, 	_______, 	_______, 	_______, 	_______, 	_______, 	_______,	_______,	_______, 	_______,	_______,	
 														_______, 	_______, 	_______, 	KC_DEL, 	_______, 	_______
 	),
 	[_RAISE] = LAYOUT(
@@ -56,7 +62,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 	[_ADJUST] = LAYOUT(
 		QK_BOOT, 	_______, 	_______, 	_______, 	_______, 	_______, 						 	_______, 	_______, 	_______, 	_______, 	_______, 	KC_VOLU,  
 		_______, 	_______, 	_______, 	_______, 	_______, 	_______, 						 	_______, 	_______, 	_______, 	_______, 	_______, 	_______,  
-		_______, 	_______, 	_______, 	_______, 	_______, 	_______, 						 	_______, 	_______, 	_______, 	_______, 	_______, 	_______,
+		_______, 	_______, 	_______, 	_______, 	_______, 	GAME, 						 		_______, 	_______, 	_______, 	_______, 	_______, 	_______,
 		_______, 	_______, 	_______, 	_______, 	_______, 	_______, 	_______, 	_______, 	_______, 	_______, 	_______, 	_______, 	KC_VOLD, 	_______, 
 														_______, 	_______, 	_______, 	_______, 	_______, 	_______
 	)
@@ -81,10 +87,35 @@ layer_state_t layer_state_set_user(layer_state_t state) {
 
 
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
-  switch (keycode) {
-    default:
-		return true; // Process all other keycodes normally
+	switch (keycode) {
+		case GAME:
+			if (record->event.pressed) {
+				gaming_mode = !gaming_mode;
+			}
+			return false;
+		case KC_LALT:
+			if (gaming_mode) {
+				if (record->event.pressed) {
+					register_code(KC_SPC);
+				} else {
+					unregister_code(KC_SPC);
+				}
+				return false;
+			}
+			break;
+		case KC_SPC:
+			if (gaming_mode) {
+				if (record->event.pressed) {
+					register_code(KC_LALT);
+				} else {
+					unregister_code(KC_LALT);
+				}
+				return false;
+			}
+			break;
 	}
+	
+	return true;
 }
 
 
@@ -140,7 +171,7 @@ bool rgb_matrix_indicators_user(void) {
 			uint16_t base_keycode = keymaps[_BASE][row][col];
 			
 			HSV target = color_base;
-			
+
 			if (base_keycode == MO(_LOWER)) {
 				target = color_lower;
 			} else if (base_keycode == MO(_RAISE)) {
